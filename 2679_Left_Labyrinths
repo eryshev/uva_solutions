@@ -1,0 +1,194 @@
+/**
+  * ACM 2679 - Left Labyrinths
+  * Use left-turn bypass
+  * */
+#include <cstdio>
+#include <utility>
+
+using namespace std;
+
+const int max_size = 100;
+int n, m;
+bool map[max_size][max_size];
+pair<int, int> start, direction, enter;
+pair<int, int> neighbors[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
+
+inline int crossProd(pair<int, int>& p1, pair<int, int>& p2) {
+    return p1.first*p2.second - p1.second*p2.first;
+}
+
+inline pair<int, int> operator-(const pair<int, int>& p1, const pair<int, int>& p2) {
+    pair<int, int> res;
+    res.first = p1.first - p2.first;
+    res.second= p1.second - p2.second;
+    return res;
+}
+
+inline pair<int, int>& operator+=(pair<int, int>& p1, const pair<int, int>& p2) {
+    p1.first += p2.first;
+    p1.second += p2.second;
+    return p1;
+}
+
+inline pair<int, int> operator+(const pair<int, int>& p1, const pair<int, int>& p2) {
+    pair<int, int> res = p1;
+    return res += p2;
+}
+
+pair<int, int> rightDir;
+bool calcRightDir() {
+    pair<int, int> turn, neigh;
+    for (int i = 0; i < 4; ++i) {
+        neigh = start + neighbors[i];
+        turn = neigh - start;
+        if (crossProd(direction, turn) == -1 && !map[neigh.first][neigh.second]) {
+            rightDir = neighbors[i];
+            return true;
+        }
+    }
+    return false;
+}
+
+pair<int, int> leftDir;
+bool calcLeftDir() {
+    pair<int, int> turn, neigh;
+    for (int i = 0; i < 4; ++i) {
+        neigh = start + neighbors[i];
+        turn = neigh - start;
+        if (crossProd(direction, turn) == 1 && !map[neigh.first][neigh.second]) {
+            leftDir = neighbors[i];
+            return true;
+        }
+    }
+    return false;
+}
+
+bool isExit(pair<int, int> p) {
+     pair<int, int> neigh;
+
+     int counter = 0;
+     for (int i = 0; i < 4; ++i) {
+         neigh = p + neighbors[i];
+         if(map[neigh.first][neigh.second]) counter++;
+     }
+
+     return(counter < 2);
+}
+
+void outside() {
+    pair<int, int> turn, neigh;
+    direction = {1, 0};
+
+    while(true) {
+        start += direction;
+
+        int counter = 0;
+        for (int i = 0; i < 4; ++i) {
+            neigh = start + neighbors[i];
+            turn = neigh - start;
+
+            int turn_sign = crossProd(direction, turn);
+
+            switch (turn_sign) {
+            case 1:
+                if(!map[neigh.first][neigh.second]) {
+                    start = neigh;
+                    direction = neighbors[i];
+                } else counter++;
+                break;
+            case 0:
+                if(map[neigh.first][neigh.second]) {
+                    calcRightDir();
+                    start += rightDir;
+                    direction = rightDir;
+                }
+                break;
+            case -1:
+                if(map[neigh.first][neigh.second]) counter++;
+            }
+        }
+
+        if (counter == 2) {
+            return;
+        }
+    }
+}
+
+bool inside() {
+    pair<int, int> turn, neigh;
+    while(true) {
+        start += direction;
+
+        if (start.first == enter.first && start.second == enter.second) return false;
+
+        int counter = 0;
+        for (int i = 0; i < 4; ++i) {
+            neigh = start + neighbors[i];
+            turn = neigh - start;
+
+            int turn_sign = crossProd(direction, turn);
+
+            if (turn_sign == 1) {
+                if(!map[neigh.first][neigh.second]) {
+                    direction = neighbors[i];
+                    counter = 0;
+                    break;
+                } else counter++;
+            } else if (turn_sign == 0) {
+                if(map[neigh.first][neigh.second]) {
+                    if (calcLeftDir()) {
+                        direction = leftDir;
+                    } else if (calcRightDir()) {
+                        direction = rightDir;
+                    } else return false;
+                    counter = 0;
+                    break;
+                }
+            } else if (turn_sign == -1)
+                if(map[neigh.first][neigh.second]) counter++;
+        }
+
+        if (counter == 1) {
+            if (isExit(start + direction)) return true;
+        }
+    }
+
+    return false;
+}
+
+int main()
+{
+    int t;
+
+    scanf("%d", &t);
+
+    while(t--) {
+        scanf("%d%d\n", &n, &m);
+
+        char bit;
+        start.first = -1;
+        for (int i = 0; i < n; ++i) {
+            for (int j= 0; j < m; ++j) {
+                scanf("%c", &bit);
+                if (bit == '#') {
+                    map[i][j] = true;
+                    if(start.first == -1) {
+                        start.first = i;
+                        start.second = j - 1;
+                    }
+                } else map[i][j] = false;
+            }
+            scanf("%c", &bit);
+        }
+
+        outside();
+        enter = start;
+
+        if (inside()) printf("YES\n");
+        else printf("NO\n");
+
+        if (t) printf("\n");
+    }
+
+    return 0;
+}
